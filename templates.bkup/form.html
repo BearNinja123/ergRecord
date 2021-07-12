@@ -1,0 +1,35 @@
+<!DOCTYPE HTML>
+<html>
+    <head>
+        <title>
+            Erg Data Tracker
+        </title>
+
+        <link rel="stylesheet" href="/static/styles.css">
+
+    <body>
+        <div class="tab">
+            <!--<button class="tablinks" onclick="openTab(event, 'liveDataPage')"> Live Data </button>
+            <button class="tablinks" onclick="openTab(event, 'formPage')"> Form </button>
+            <button class="tablinks" onclick="openTab(event, 'hDataPage')"> Historical Data </button>-->
+            <button onclick="location.replace('/')"> Live Data </button>
+            <button onclick="location.replace('/form')"> Form </button>
+            <button onclick="location.replace('/hist_data')"> Historical Data </button>
+        </div>
+
+        <div id="formPage" class="tabcontent">
+            <form>
+                <label for="restHR"> Resting Heart Rate: </label>
+                <input type="text" id="restHR" value=60><br>
+
+                <label for="age"> Age: </label>
+                <input type="text" id="age" value=16><br>
+                
+                <label for="maxHR"> Max Heart Rate (optional field): </label>
+                <input type="text" id="maxHR" value="N/A"><br><br>
+
+                <input type="submit" value="Submit">
+            </form>
+        </div>
+    </body>
+</html>

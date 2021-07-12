@@ -1,0 +1,35 @@
+<!DOCTYPE HTML>
+<html>
+    <head>
+        {% extends "layout.html" %}
+    </head>
+    <body>
+        {% block content %}
+            <br>
+            <div class="tabcontent">
+                    <form method="post">
+                    <label for="restHR">Resting Heart Rate:</label>
+                    <input class="default_input" type="text" name="restHR" value=60><br>
+
+                    <label for="age">Age:</label>
+                    <input class="default_input" type="text" name="age" value=16><br>
+                    
+                    <label for="maxHR">Max Heart Rate (optional field):</label>
+                    <input class="default_input" type="text" name="maxHR" value="N/A"><br><br>
+
+                    <input type="submit" value="Submit">
+                </form>
+
+                <div id="messages">
+                    <h3>Max Heart Rate: {{ maxHR }}</h3>
+                    <h3>Heart Rate Reserve (HRR): {{ hrr }}</h3>
+                    <h3>UT3 Zone (50-60% HRR): {{ hrr }}</h3>
+                    <h3>UT2 Zone (60-70% HRR): {{ hrr }}</h3>
+                    <h3>UT1 Zone (70-80% HRR): {{ hrr }}</h3>
+                    <h3>AT Zone (80-95% HRR): {{ hrr }}</h3>
+                    <h3>Trans Zone (95-100% HRR): {{ hrr }}</h3>
+                </div>
+            </div>
+        {% endblock %}
+    </body>
+</html>

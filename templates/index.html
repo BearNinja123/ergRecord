@@ -1,0 +1,40 @@
+<!DOCTYPE HTML>
+<html>
+    <head>
+        {% extends "layout.html" %}
+        {% block head %}
+            {{ super() }}
+
+            <script src="/static/buttonSwitch.js"></script>
+            <!-- boi this took forever to implement -->
+            <script src="//ajax.googleapis.com/ajax/libs/jquery/3.6.0/jquery.min.js"></script>
+            <script>
+                function update() {
+                    $SCRIPT_ROOT = {{ request.script_root|tojson|safe }};
+                    $.getJSON($SCRIPT_ROOT+"/_splits",
+                        function(data) {
+                            $("#split").text(data['split'])
+                            $("#avgSplit").text(data['avgSplit'])
+                            $("#hr").text(data['hr'])
+                            $("#avgHr").text(data['avgHr'])
+                        });
+                }
+                
+                var dataFetcher = setInterval(update, 1000);
+            </script>
+        {% endblock %}
+    </head>
+
+    <body>
+        {% block content %}
+            <div class="tabcontent">
+                <img src="{{ url_for('plot') }}" alt="bruh">
+
+                <h3>Current Split: <span id="split"></span> </h3>
+                <h3>Current Heart Rate: <span id="hr"></span> </h3>
+                <h3>Average Split: <span id="avgSplit"></span> </h3>
+                <h3>Average Heart Rate: <span id="avgHr"></span> </h3>
+            </div>
+        {% endblock %}
+    </body>
+</html>

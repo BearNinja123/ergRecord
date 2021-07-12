@@ -1,0 +1,37 @@
+<!DOCTYPE HTML>
+<html>
+    <head>
+        {% block head %}
+            <title>
+                Erg Data Tracker
+            </title>
+
+            <link rel="stylesheet" href="/static/styles.css">
+        {% endblock %}
+    </head>
+
+    <body>
+        {% block topStuff %}
+            <!-- tabs -->
+            <div class="tab">
+                <button onclick="location.replace('/')">Live Data</button>
+                <button onclick="location.replace('/form')">Form</button>
+                <button onclick="location.replace('/hist_data')">Historical Data</button>
+            </div>
+
+            <!-- flashed messages -->
+            {% with messages = get_flashed_messages() %}
+                {% if messages %}
+                    <br>
+                    {% for message in messages %}
+                        <li class="flashed_msg">{{ message }}</li>
+                    {% endfor %}
+                    <br>
+                {% endif %}
+            {% endwith %}
+        {% endblock %}
+
+        {% block content %}
+        {% endblock %}
+    </body>
+</html>
