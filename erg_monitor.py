@@ -5,6 +5,9 @@ from pyrow import pyrow
 import matplotlib.pyplot as plt
 import numpy as np
 
+import formatting
+import os
+
 class ErgMonitor:
     '''
     Args:
@@ -21,7 +24,6 @@ class ErgMonitor:
         self.hrs = []
         self.splits = []
         self.hr = self.split = None
-        self.avg_hrs = self.avg_splits = [] # recording 5-minute averages of heart rate and split
         self.show = show
         self.debug = debug
         self.lookback = lookback
@@ -103,6 +105,66 @@ class ErgMonitor:
         self.update_data()
         self.graph_data()
         return self.fig, self.split, self.hr
+
+    def dump_data(self, avg_every=300, rest_hr=None, max_hr=None, outdir='.', csv_name='workouts.csv'): # take averages every 300 datapoints, zone is a value like 'UT2'
+        num_sum_points = len(self.x) // avg_every
+        n = num_sum_points * avg_every
+        get_avgs = lambda arr: arr[:n].reshape(avg_every, num_sum_points).mean(axis=0) # reshape arr into 2D array, take mean of that array where each mean summarizes avg_every items
+        hr_arr = np.array(self.hrs)
+        split_arr = np.array(self.splits)
+        
+        avg_splits = get_avgs(split_arr)
+        avg_split = round(split_arr.mean())
+        #avg_split = formatting.fmt_split(split_arr.mean())
+
+        avg_hrs = get_avgs(hr_arr)
+        avg_hr = round(hr_arr.mean())
+
+        # Save everything
+        try:
+            os.mkdir(outdir)
+        except FileExistsError:
+            pass
+        os.chdir(outdir)
+        
+        try:
+            if rest_hr is None:
+                zone = 'unknown'
+            else:
+                hrr = max_hr - rest_hr
+                percent_heart_rate = (avg_hr - rest_hr) / hrr
+                zone = formatting.calc_hr_zone(percent_heart_rate)
+
+                np.save('rest_hr.npy', rest_hr)
+                np.save('max_hr.npy', max_hr)
+
+            try:
+                os.mkdir('hr_data')
+                os.mkdir('split_data')
+            except FileExistsError:
+                pass
+
+            m, d, y, h, m = formatting.whats_the_time()
+            time_extension = '{}-{}-{}_{}:{}'.format(y, m, d, h, m)
+            split_filename = 'split_data/split_{}.npy'.format(time_extension)
+            hr_filename = 'hr_data/hr_{}.npy'.format(time_extension)
+            np.save(split_filename, avg_splits)
+            np.save(hr_filename, avg_hrs)
+
+            if csv_name not in os.listdir():
+                outfile = open(csv_name, 'a')
+                outfile.write('year,month,day,hour,minute,num_sum_points,zone,avg_split,avg_hr,split_file,hr_file\n')
+            else:
+                outfile = open(csv_name, 'a')
+
+            outfile.write('{},{},{},{},{},{},{},{},{},{},{}\n'.format(
+                m, d, y, h, m, num_sum_points, zone, avg_split, avg_hr, split_filename, hr_filename))
+
+            outfile.close()
+            os.chdir('..')
+        except Exception as e:
+            print('Exception on method dump_data:', e)
+            os.chdir('..')
 
 if __name__ == '__main__':
     while True:

@@ -5,10 +5,20 @@
         {% block head %}
             {{ super() }}
 
-            <script src="/static/buttonSwitch.js"></script>
             <!-- boi this took forever to implement -->
             <script src="//ajax.googleapis.com/ajax/libs/jquery/3.6.0/jquery.min.js"></script>
             <script>
+                // if a button is clicked, send a post request which is different than what happens when the page is refreshed
+                $(document).ready(function() {
+                    $("#save_button").click(function() {
+                        $.post("/",
+                        {
+                            button_clicked: true
+                        },
+                        function(data, status) { });
+                    });
+                });
+
                 function update() {
                     $SCRIPT_ROOT = {{ request.script_root|tojson|safe }};
                     $.getJSON($SCRIPT_ROOT+"/_data",
@@ -40,7 +50,9 @@
             <h3>Current Heart Rate: <span id="hr"></span> </h3>
             <h3>Average Split: <span id="avg_split"></span> </h3>
             <h3>Average Heart Rate: <span id="avg_hr"></span> </h3>
-            <h2>Current Heart Rate Zone:<br> <span id="current_hr_zone"></span> </h2>
+            <h2>Current Heart Rate Zone:<br> <span id="current_hr_zone"></span> </h2><br>
+
+            <button id="save_button">Save Workout</button>
         {% endblock %}
     </body>
 </html>

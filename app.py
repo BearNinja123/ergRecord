@@ -1,20 +1,28 @@
 from matplotlib.backends.backend_agg import FigureCanvasAgg as FigureCanvas
 from flask import Flask, Response, render_template, jsonify, request, flash
-import erg_monitor, string_fmt
-import io, time, json
+import numpy as np
+import erg_monitor, formatting
+import io, time, json, os
 
 debug = True
 app = Flask(__name__)
 app.secret_key = b'j;oafijopiewjf oijfpOI JOI jpIOPJF'
+
+rest_hr = max_hr = hrr = age = None
+outdir = 'workouts'
+try:
+    if 'rest_hr.npy' in os.listdir(outdir):
+        rest_hr = int(np.load(os.path.join(outdir, 'rest_hr.npy')))
+        max_hr = int(np.load(os.path.join(outdir, 'max_hr.npy')))
+        hrr = max_hr - rest_hr # hrr = heart rate reserve
+except FileNotFoundError:
+    pass
+
 split = hr = None
-rest_hr = max_hr = hrr = None # hrr = heart rate reserve
 lookback = 60
 monitor = erg_monitor.ErgMonitor(debug=debug, lookback=lookback)
 sendImage = False
 reload_time = 1
-
-def test_func():
-    pass
 
 def gen_figure(lookback=lookback): # reload_time = number of seconds to wait before yielding a value
     global split, hr, sendImage
@@ -53,30 +61,14 @@ def send_data(lookback=lookback): # calculates data to be sent to the website
         }
 
     if hr is not None:
-        hr_zones = {0.9: 'TRANS', 0.8: 'AT', 0.7: 'UT1', 0.6: 'UT2', 0.5: 'UT3'}
-
         if rest_hr is None or not type(rest_hr) is int:
             fields['current_hr_zone'] = 'Error: Please fill out the form in the "Form" tab to see what zone you are currently in.'
         else:
             percent_heart_rate = (hr - rest_hr) / hrr
-            heart_rate_zone = int(percent_heart_rate * 10) / 10 # fancy truncation math to see which zone you're in
+            fields['current_hr_zone'] = formatting.calc_hr_zone(percent_heart_rate)
+            fields['hr_color'] = formatting.hr_zone_coloring(percent_heart_rate)
 
-            if percent_heart_rate >= 0.5:
-                fields['current_hr_zone'] = hr_zones[heart_rate_zone]
-
-                # calculating the color for heart rate - 0.75 is between 0.5 (start of UT3) and 1.0 (max HR)
-                if percent_heart_rate - 0.75 > 0:
-                    redValue = 255
-                    greenValue = int(255 + 255 * 4 * (0.75 - percent_heart_rate))
-                else: 
-                    greenValue = 255
-                    redValue = int(255 - 255 * 4 * (0.75 - percent_heart_rate))
-                fields['hr_color'] = 'rgb({}, {}, 0)'.format(redValue, greenValue)
-            else:
-                fields['current_hr_zone'] = 'SUB UT3'
-                fields['hr_color'] = 'rgb(0, 255, 0)' # green
-
-        fields['split'] = string_fmt.fmt_split(split)
+        fields['split'] = formatting.fmt_split(split)
         fields['hr'] = str(round(hr))
 
         if split == 0:
@@ -85,45 +77,63 @@ def send_data(lookback=lookback): # calculates data to be sent to the website
             fields['hr'] = 'N/A'
 
         avg_split, avg_hr = monitor.get_averages(lookback)
-        fields['avg_split'] = string_fmt.fmt_split(avg_split)
+        fields['avg_split'] = formatting.fmt_split(avg_split)
         fields['avg_hr'] = str(round(avg_hr))
         
     return jsonify(fields)
 
 @app.route('/form', methods=['GET', 'POST'])
 def submit_form():
-    global hrr, rest_hr, max_hr
+    global hrr, rest_hr, max_hr, age
 
-    if request.method == 'POST':
-        #print(request.form)
-        #print(request.form['rest_hr'])
-
+    # collect data found in the post request and calculating rest/max HR
+    if request.method == 'POST': 
         form_data = request.form
         rest_hr, age, max_hr = form_data['rest_hr'], form_data['age'], form_data['max_hr']
+        print('\n\naaaa\n\n')
 
+        # qualifying and processing string data 
         if not rest_hr.isdigit():
             flash('Please provide your resting heart rate (default is 60 BPM) as an integer.')
+            return render_template('form.html', rest_hr=60, age=age, max_hr=max_hr)
         elif (not age.isdigit()) and (not max_hr.isdigit()):
             flash('Please provide either your max heart rate or your age as an integer.')
-        else:
+            return render_template('form.html', rest_hr=rest_hr, age='', max_hr='')
+        else: # turn data received into ints and saving them to disk
             rest_hr = int(rest_hr)
             if not max_hr.isdigit():
                 max_hr = 220 - int(age)
-            hrr = int(max_hr) - int(rest_hr)
+            max_hr = int(max_hr)
+            hrr = max_hr - rest_hr
 
-            zone_bpm = lambda zone: round(rest_hr + hrr * zone / 100)
+            try:
+                os.mkdir(outdir)
+            except FileExistsError:
+                pass
+            np.save(os.path.join(outdir, 'rest_hr.npy'), rest_hr)
+            np.save(os.path.join(outdir, 'max_hr.npy'), max_hr)
 
-            trans = '{}-{}'.format(zone_bpm(90), zone_bpm(100))
-            at = '{}-{}'.format(zone_bpm(80), zone_bpm(90))
-            ut1 = '{}-{}'.format(zone_bpm(70), zone_bpm(80))
-            ut2 = '{}-{}'.format(zone_bpm(60), zone_bpm(70))
-            ut3 = '{}-{}'.format(zone_bpm(50), zone_bpm(60))
+    if rest_hr is None: # put this condition below data collection so you can change rest_hr if there is a post request
+        return render_template('form.html', rest_hr=60, age='', max_hr='')
 
-            return render_template(
-                    'form.html', max_hr=max_hr, hrr=hrr,
-                    trans_zone=trans, at_zone=at,
-                    ut1_zone=ut1, ut2_zone=ut2, ut3_zone=ut3)
-    return render_template('form.html')
+    # taking rest/max HR (whether it be from the post request or saved in disk) and calculating HR zones
+    zone_bpm = lambda zone: round(rest_hr + hrr * zone / 100)
+
+    trans = '{}-{}'.format(zone_bpm(90), zone_bpm(100))
+    at = '{}-{}'.format(zone_bpm(80), zone_bpm(90))
+    ut1 = '{}-{}'.format(zone_bpm(70), zone_bpm(80))
+    ut2 = '{}-{}'.format(zone_bpm(60), zone_bpm(70))
+    ut3 = '{}-{}'.format(zone_bpm(50), zone_bpm(60))
+
+    # render 'em templates - 
+    if age is None:
+        age = ''
+
+    return render_template(
+        'form.html', rest_hr=rest_hr, age=age,
+        max_hr='', hrr=hrr,
+        calc_max_hr=max_hr, trans_zone=trans, at_zone=at,
+        ut1_zone=ut1, ut2_zone=ut2, ut3_zone=ut3)
 
 @app.route('/hist_data', methods=['GET', 'POST'])
 def view_hdata():
@@ -135,8 +145,13 @@ def view_hdata():
 def plot():
     return Response(gen_figure(), mimetype='multipart/x-mixed-replace; boundary=frame') # you absolutely need all of this to work
 
-@app.route('/')
+@app.route('/', methods=['GET', 'POST'])
 def index():
+    if request.method == 'POST':
+        if 'button_clicked' in request.form:
+            print('\n\n\nyee\n\n\n')
+            monitor.dump_data(rest_hr=rest_hr, max_hr=max_hr, outdir='workouts')
+
     return render_template('index.html', reload_time=reload_time)
 
 if __name__ == '__main__':
