@@ -11,30 +11,36 @@
             <script>
                 function update() {
                     $SCRIPT_ROOT = {{ request.script_root|tojson|safe }};
-                    $.getJSON($SCRIPT_ROOT+"/_splits",
+                    $.getJSON($SCRIPT_ROOT+"/_data",
                         function(data) {
-                            $("#split").text(data['split'])
-                            $("#avgSplit").text(data['avgSplit'])
-                            $("#hr").text(data['hr'])
-                            $("#avgHr").text(data['avgHr'])
+                            $("#split").text(data['split']);
+                            $("#avg_split").text(data['avg_split']);
+                            $("#hr").text(data['hr']);
+                            $("#avg_hr").text(data['avg_hr']);
+                            $("#current_hr_zone").text(data['current_hr_zone']);
+                            
+                            if (data['current_hr_zone'].startsWith("Error"))
+                                $("#current_hr_zone").css({'color': 'red'});
+                            else
+                                $("#current_hr_zone").css({'color': data['hr_color']});
                         });
                 }
                 
-                var dataFetcher = setInterval(update, 1000);
+                var dataFetcher = setInterval(update, 1000 * {{ reload_time }});
             </script>
         {% endblock %}
     </head>
 
     <body>
         {% block content %}
-            <div class="tabcontent">
-                <img src="{{ url_for('plot') }}" alt="bruh">
+            <br>
+            <img src={{ url_for('plot') }} alt="bruh" id="live_data_plot" align="left" style="padding: 20px;">
 
-                <h3>Current Split: <span id="split"></span> </h3>
-                <h3>Current Heart Rate: <span id="hr"></span> </h3>
-                <h3>Average Split: <span id="avgSplit"></span> </h3>
-                <h3>Average Heart Rate: <span id="avgHr"></span> </h3>
-            </div>
+            <h3>Current Split: <span id="split"></span> </h3>
+            <h3>Current Heart Rate: <span id="hr"></span> </h3>
+            <h3>Average Split: <span id="avg_split"></span> </h3>
+            <h3>Average Heart Rate: <span id="avg_hr"></span> </h3>
+            <h2>Current Heart Rate Zone:<br> <span id="current_hr_zone"></span> </h2>
         {% endblock %}
     </body>
 </html>

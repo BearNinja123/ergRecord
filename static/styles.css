@@ -1,3 +1,10 @@
+body {
+    background-image: url("/static/fatergo.jpeg");
+    background-size: cover;
+    color: white;
+    font-size: 24px;
+}
+
 .tab {
     overflow: hidden;
     border: 1px solid #ccc;

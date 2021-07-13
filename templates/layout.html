@@ -7,17 +7,22 @@
             </title>
 
             <link rel="stylesheet" href="/static/styles.css">
+            <link rel="shortcut icon" type="image/jpg" href="/static/fatergo.jpeg">
         {% endblock %}
     </head>
 
     <body>
         {% block topStuff %}
+            <h1>Fat Ergo</h1>
+
             <!-- tabs -->
             <div class="tab">
                 <button onclick="location.replace('/')">Live Data</button>
                 <button onclick="location.replace('/form')">Form</button>
                 <button onclick="location.replace('/hist_data')">Historical Data</button>
             </div>
+
+            <!--<img src="/static/fatergo.jpeg" alt="fat ergo" align="right">-->
 
             <!-- flashed messages -->
             {% with messages = get_flashed_messages() %}

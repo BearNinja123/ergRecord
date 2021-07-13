@@ -6,6 +6,19 @@
 
     <body>
         {% block content %}
+        <form method="post">
+            <label for="workout_options">Select a workout type:</label>
+
+            <select name="workout_type" id="workout_type">
+                <option value="ut1">UT1</option>
+                <option value="ut2">UT2</option>
+                <option value="ut3">UT3</option>
+                <option value="at">AT</option>
+                <option value="trans">TRANS</option>
+            </select>
+
+            <button type="submit">yah</button>
+        </form>
         {% endblock %}
     </body>
 </html>
