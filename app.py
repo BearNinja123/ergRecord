@@ -1,6 +1,11 @@
 from matplotlib.backends.backend_agg import FigureCanvasAgg as FigureCanvas
 from flask import Flask, Response, render_template, jsonify, request, flash
+import logging
+log = logging.getLogger('werkzeug')
+log.setLevel(logging.ERROR)
+
 import numpy as np
+import historical_data_plot as hdp
 import erg_monitor, formatting
 import io, time, json, os
 
@@ -21,14 +26,13 @@ except FileNotFoundError:
 split = hr = None
 lookback = 60
 monitor = erg_monitor.ErgMonitor(debug=debug, lookback=lookback)
-sendImage = False
+sendImage = clearFig = False
 reload_time = 1
 
 def gen_figure(lookback=lookback): # reload_time = number of seconds to wait before yielding a value
-    global split, hr, sendImage
+    global split, hr, sendImage, clearFig
 
     while True:
-
         if split is None:
             wait = False
         else:
@@ -41,6 +45,12 @@ def gen_figure(lookback=lookback): # reload_time = number of seconds to wait bef
 
         while not sendImage:
             time.sleep(0.01)
+            if clearFig:
+                fig, split, hr = monitor.cug()
+                output = io.BytesIO() # create a place to dump the contents of the figure into
+                FigureCanvas(fig).print_jpeg(output) # turn the figure into a png file but just in memory
+                ret = output.getvalue()
+                clearFig = False
 
         sendImage = False
         yield (b'--frame\r\n'
@@ -77,8 +87,11 @@ def send_data(lookback=lookback): # calculates data to be sent to the website
             fields['hr'] = 'N/A'
 
         avg_split, avg_hr = monitor.get_averages(lookback)
-        fields['avg_split'] = formatting.fmt_split(avg_split)
-        fields['avg_hr'] = str(round(avg_hr))
+        if not np.isnan(avg_split):
+            fields['avg_split'] = formatting.fmt_split(avg_split)
+            fields['avg_hr'] = str(round(avg_hr))
+        else:
+            fields['avg_split'] = fields['avg_hr'] = 'N/A'
         
     return jsonify(fields)
 
@@ -90,7 +103,6 @@ def submit_form():
     if request.method == 'POST': 
         form_data = request.form
         rest_hr, age, max_hr = form_data['rest_hr'], form_data['age'], form_data['max_hr']
-        print('\n\naaaa\n\n')
 
         # qualifying and processing string data 
         if not rest_hr.isdigit():
@@ -125,7 +137,7 @@ def submit_form():
     ut2 = '{}-{}'.format(zone_bpm(60), zone_bpm(70))
     ut3 = '{}-{}'.format(zone_bpm(50), zone_bpm(60))
 
-    # render 'em templates - 
+    # render 'em templates
     if age is None:
         age = ''
 
@@ -138,7 +150,10 @@ def submit_form():
 @app.route('/hist_data', methods=['GET', 'POST'])
 def view_hdata():
     if request.method == 'POST':
-        print(request.form)
+        zone = request.form['workout_type']
+        return render_template('historical_data.html',
+                split_pic='static/{}_historical_split.jpg'.format(zone),
+                hr_pic='static/{}_historical_hr.jpg'.format(zone))
     return render_template('historical_data.html')
 
 @app.route('/plot')
@@ -147,14 +162,46 @@ def plot():
 
 @app.route('/', methods=['GET', 'POST'])
 def index():
+    global clearFig
+
     if request.method == 'POST':
         if 'button_clicked' in request.form:
-            print('\n\n\nyee\n\n\n')
-            monitor.dump_data(rest_hr=rest_hr, max_hr=max_hr, outdir='workouts')
+            if request.form['button_clicked'] == 'save':
+                monitor.dump_data(rest_hr=rest_hr, max_hr=max_hr, outdir='workouts')
+
+                zone = formatting.calc_hr_zone(hr=monitor.avg_hr, rest_hr=rest_hr, max_hr=max_hr)
+                df = hdp.gen_hist_df(zone=zone)
+                split_fig = hdp.plot_zone_data(zone, mode='Split', df=df, color='green')
+                split_fig.savefig('static/{}_historical_split.jpg'.format(zone))
+                hr_fig = hdp.plot_zone_data(zone, mode='HR', df=df, color='red')
+                hr_fig.savefig('static/{}_historical_hr.jpg'.format(zone))
+            elif request.form['button_clicked'] == 'clear':
+                monitor.clear_data()
+                clearFig = True
 
     return render_template('index.html', reload_time=reload_time)
 
 if __name__ == '__main__':
+    df = hdp.gen_hist_df() # create data with all historical data
+    if df: # if there is historical data
+        for zone in ['TRANS', 'AT', 'UT1', 'UT2', 'UT3']: # for each zone, try to get split and HR data, if you can't, get empty graphs and save them
+            '''if '{}_historical_split.jpg'.format(zone) not in os.listdir('static'):
+                split_fig = hdp.empty_graph('Historical {} Workout Data (Split)'.format(zone))
+                split_fig.savefig('static/{}_historical_split.jpg'.format(zone))
+                hr_fig = hdp.empty_graph('Historical {} Workout Data (Split)'.format(zone))
+                hr_fig.savefig('static/{}_historical_hr.jpg'.format(zone))'''
+
+            try:
+                split_fig = hdp.plot_zone_data(zone, mode='Split', df=df.get_group(zone), color='green')
+                split_fig.savefig('static/{}_historical_split.jpg'.format(zone))
+                hr_fig = hdp.plot_zone_data(zone, mode='HR', df=df.get_group(zone), color='red')
+                hr_fig.savefig('static/{}_historical_hr.jpg'.format(zone))
+            except:
+                split_fig = hdp.empty_graph('Historical {} Workout Data (Split)'.format(zone))
+                split_fig.savefig('static/{}_historical_split.jpg'.format(zone))
+                hr_fig = hdp.empty_graph('Historical {} Workout Data (Split)'.format(zone))
+                hr_fig.savefig('static/{}_historical_hr.jpg'.format(zone))
+
     if debug:
         app.run(debug=True)
         #app.run(host='0.0.0.0')

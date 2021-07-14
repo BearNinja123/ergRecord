@@ -10,14 +10,19 @@
             <label for="workout_options">Select a workout type:</label>
 
             <select name="workout_type" id="workout_type">
-                <option value="ut1">UT1</option>
-                <option value="ut2">UT2</option>
-                <option value="ut3">UT3</option>
-                <option value="at">AT</option>
-                <option value="trans">TRANS</option>
+                <option value="UT1">UT1</option>
+                <option value="UT2">UT2</option>
+                <option value="UT3">UT3</option>
+                <option value="AT">AT</option>
+                <option value="TRANS">TRANS</option>
             </select>
 
-            <button type="submit">yah</button>
+            <button type="submit">yah</button><br><br>
+
+            {% if split_pic %}
+                <img src={{ split_pic }} alt="split historical data">
+                <img src={{ hr_pic }} alt="heart rate historical data">
+            {% endif %}
         </form>
         {% endblock %}
     </body>

@@ -16,17 +16,17 @@
                 <label for="max_hr">Max Heart Rate (optional field):</label>
                 <input class="default_input" type="text" name="max_hr" value={{ max_hr }}><br><br>
 
-                <input type="submit" value="Submit">
+                <button type="submit">Submit</button>
             </form>
 
-            <div id="messages">
-                <h3>Max Heart Rate: {{ calc_max_hr }}</h3>
-                <h3>Heart Rate Reserve (HRR): {{ hrr }}</h3>
-                <h3>Trans Zone (95-100% HRR): {{ trans_zone }}</h3>
-                <h3>AT Zone (80-95% HRR): {{ at_zone }}</h3>
-                <h3>UT1 Zone (70-80% HRR): {{ ut1_zone }}</h3>
-                <h3>UT2 Zone (60-70% HRR): {{ ut2_zone }}</h3>
-                <h3>UT3 Zone (50-60% HRR): {{ ut3_zone }}</h3>
+            <div class="column">
+                <p>Max Heart Rate: {{ calc_max_hr }}</p>
+                <p>Heart Rate Reserve (HRR): {{ hrr }}</p>
+                <p>Trans Zone (95-100% HRR): {{ trans_zone }}</p>
+                <p>AT Zone (80-95% HRR): {{ at_zone }}</p>
+                <p>UT1 Zone (70-80% HRR): {{ ut1_zone }}</p>
+                <p>UT2 Zone (60-70% HRR): {{ ut2_zone }}</p>
+                <p>UT3 Zone (50-60% HRR): {{ ut3_zone }}</p>
             </div>
         {% endblock %}
     </body>

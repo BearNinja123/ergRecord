@@ -2,38 +2,27 @@ body {
     background-image: url("/static/fatergo.jpeg");
     background-size: cover;
     color: white;
-    font-size: 24px;
+    font-size: 30px;
+    font-family: 'Times New Roman', serif;
 }
 
-.tab {
-    overflow: hidden;
-    border: 1px solid #ccc;
-    background-color: #f1f1f1;
+button {
+    font-size: 30px;
+    font-family: 'Times New Roman', serif;
 }
 
-.tab button {
-    background-color: inherit;
-    float: left;
-    border: none;
-    outline: none;
-    cursor: pointer;
-    padding: 14px 16px;
-    font-size: 17px;
-    /*transition: 1s;*/
+img {
+    padding: 0px 20px;
+    width: 700px;
 }
 
-.tab button:hover {
-    background-color: #ddd;
+p {
+    font-size: 30px;
 }
 
-.tab button.active {
-    background-color: #ccc;
-}
-
-.page_content {
-    padding: 5px 12px;
-    border: 1px solid #ccc;
-    border-top: none;
+select {
+    font-size: 30px;
+    font-family: 'Times New Roman', serif;
 }
 
 .default_input {
@@ -45,4 +34,36 @@ body {
     font-size: 20px;
     font-weight: bold;
     color: red;
+}
+
+.page_content {
+    padding: 5px 12px;
+    border: 1px solid #ccc;
+    border-top: none;
+}
+
+.column {
+    float: left;
+    width: 30%;
+    padding: 10px;
+    background-color: rgba(15,35,5,0.75);
+}
+
+.tab button {
+    background-color: #f1f1f1;
+    float: right;
+    border: none;
+    outline: none;
+    cursor: pointer;
+    padding: 14px 16px;
+    font-size: 20px;
+    font-family: 'Times New Roman', serif;
+}
+
+.tab button:hover {
+    background-color: #ddd;
+}
+
+.tab button.active {
+    background-color: #ccc;
 }

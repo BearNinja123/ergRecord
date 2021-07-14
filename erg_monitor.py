@@ -18,12 +18,8 @@ class ErgMonitor:
     def __init__(self, show=False, debug=False, lookback=60):
         self.erg = self._find_erg()
         self._setup_fig()
+        self.clear_data()
 
-        self.timestep = 0
-        self.x = []
-        self.hrs = []
-        self.splits = []
-        self.hr = self.split = None
         self.show = show
         self.debug = debug
         self.lookback = lookback
@@ -37,19 +33,26 @@ class ErgMonitor:
         try:
             self.erg = PyErg(erg) # turn the USB device into a PyErg object
             print('Erg found')
-        except Exception as e:
-            print(e)
+        except NameError:
+            pass
 
         return self.erg
     
     def _setup_fig(self):
-        self.fig = plt.figure()
+        self.fig, self.ax = plt.subplots()
         self.fig.suptitle('Live Erg Data')
-        self.ax = self.fig.add_subplot()
 
         self.hr_plot = None
         self.split_plot = None
+
+    def clear_data(self):
+        self.timestep = 0
         self.current_time = -1
+        self.x = []
+        self.hrs = []
+        self.splits = []
+        self.hr = self.split = None
+        self.avg_hr = self.avg_split = None
 
     # collect heart rate and split data from an erg or generate them
     def collect_data(self):
@@ -80,9 +83,9 @@ class ErgMonitor:
                 self.ax.axhline(val, color='gray', alpha=0.25)
             self.ax.set_yticks(np.arange(0, 250, 10))
             self.hr_plot, = self.ax.plot(self.x, self.hrs, color='red', label='Heart rate')
-            self.split_plot, = self.ax.plot(self.x, self.splits, color='blue', label='Split')
+            self.split_plot, = self.ax.plot(self.x, self.splits, color='green', label='Split')
             self.ax.set_ylim([min(min(self.hrs), min(self.splits)) - 10, max(max(self.hrs), max(self.splits)) + 10])
-            plt.legend()
+            self.ax.legend()
         else:
             visible_hrs = self.hrs[-self.lookback:]
             visible_splits = self.splits[-self.lookback:]
@@ -114,11 +117,11 @@ class ErgMonitor:
         split_arr = np.array(self.splits)
         
         avg_splits = get_avgs(split_arr)
-        avg_split = round(split_arr.mean())
+        self.avg_split = round(split_arr.mean())
         #avg_split = formatting.fmt_split(split_arr.mean())
 
         avg_hrs = get_avgs(hr_arr)
-        avg_hr = round(hr_arr.mean())
+        self.avg_hr = round(hr_arr.mean())
 
         # Save everything
         try:
@@ -132,7 +135,7 @@ class ErgMonitor:
                 zone = 'unknown'
             else:
                 hrr = max_hr - rest_hr
-                percent_heart_rate = (avg_hr - rest_hr) / hrr
+                percent_heart_rate = (self.avg_hr - rest_hr) / hrr
                 zone = formatting.calc_hr_zone(percent_heart_rate)
 
                 np.save('rest_hr.npy', rest_hr)
@@ -144,7 +147,7 @@ class ErgMonitor:
             except FileExistsError:
                 pass
 
-            m, d, y, h, m = formatting.whats_the_time()
+            mth, d, y, h, m = formatting.whats_the_time()
             time_extension = '{}-{}-{}_{}:{}'.format(y, m, d, h, m)
             split_filename = 'split_data/split_{}.npy'.format(time_extension)
             hr_filename = 'hr_data/hr_{}.npy'.format(time_extension)
@@ -153,12 +156,12 @@ class ErgMonitor:
 
             if csv_name not in os.listdir():
                 outfile = open(csv_name, 'a')
-                outfile.write('year,month,day,hour,minute,num_sum_points,zone,avg_split,avg_hr,split_file,hr_file\n')
+                outfile.write('month,day,year,hour,minute,num_sum_points,zone,avg_split,avg_hr,split_file,hr_file\n')
             else:
                 outfile = open(csv_name, 'a')
 
             outfile.write('{},{},{},{},{},{},{},{},{},{},{}\n'.format(
-                m, d, y, h, m, num_sum_points, zone, avg_split, avg_hr, split_filename, hr_filename))
+                mth, d, y, h, m, num_sum_points, zone, self.avg_split, self.avg_hr, split_filename, hr_filename))
 
             outfile.close()
             os.chdir('..')

@@ -13,7 +13,15 @@
                     $("#save_button").click(function() {
                         $.post("/",
                         {
-                            button_clicked: true
+                            button_clicked: "save"
+                        },
+                        function(data, status) { });
+                    });
+
+                    $("#clear_button").click(function() {
+                        $.post("/",
+                        {
+                            button_clicked: "clear"
                         },
                         function(data, status) { });
                     });
@@ -44,15 +52,18 @@
     <body>
         {% block content %}
             <br>
-            <img src={{ url_for('plot') }} alt="bruh" id="live_data_plot" align="left" style="padding: 20px;">
+            <img src={{ url_for('plot') }} alt="bruh" id="live_data_plot" align="left">
 
-            <h3>Current Split: <span id="split"></span> </h3>
-            <h3>Current Heart Rate: <span id="hr"></span> </h3>
-            <h3>Average Split: <span id="avg_split"></span> </h3>
-            <h3>Average Heart Rate: <span id="avg_hr"></span> </h3>
-            <h2>Current Heart Rate Zone:<br> <span id="current_hr_zone"></span> </h2><br>
+            <div class='column'>
+                <p>Current Split: <span id="split"></span> </p>
+                <p>Current Heart Rate: <span id="p"></span> </p>
+                <p>Average Split: <span id="avg_split"></span> </p>
+                <p>Average Heart Rate: <span id="avg_p"></span> </p>
+                <p>Current Heart Rate Zone:<br> <span id="current_hr_zone"></span> </p><br>
 
-            <button id="save_button">Save Workout</button>
+                <button id="clear_button">Clear Workout</button>
+                <button id="save_button">Save Workout</button>
+            </div>
         {% endblock %}
     </body>
 </html>

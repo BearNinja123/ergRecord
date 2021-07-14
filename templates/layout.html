@@ -13,16 +13,14 @@
 
     <body>
         {% block topStuff %}
-            <h1>Fat Ergo</h1>
-
-            <!-- tabs -->
+            <!-- tabs - they are reversed compared to what you see on the website because the buttons are right-aligned -->
             <div class="tab">
-                <button onclick="location.replace('/')">Live Data</button>
-                <button onclick="location.replace('/form')">Form</button>
                 <button onclick="location.replace('/hist_data')">Historical Data</button>
+                <button onclick="location.replace('/form')">Form</button>
+                <button onclick="location.replace('/')">Live Data</button>
             </div>
 
-            <!--<img src="/static/fatergo.jpeg" alt="fat ergo" align="right">-->
+            <h1>Fat Ergo</h1>
 
             <!-- flashed messages -->
             {% with messages = get_flashed_messages() %}

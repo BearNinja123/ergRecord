@@ -11,7 +11,14 @@ def pre_pad(text, length=4, filler='0'): # turn '2' --> '02' as in '2:02'
 def fmt_split(split): # turn split=120 --> 2:00
     return '{}:{}'.format(int(split // 60), pre_pad(str(round(split % 60, 1))))
 
-def hr_zone_coloring(percent_heart_rate):
+def _calc_percent_heart_rate(hr, rest_hr, max_hr):
+    hrr = max_hr - rest_hr
+    return (hr - rest_hr) / hrr
+
+def hr_zone_coloring(percent_heart_rate=None, hr=None, rest_hr=None, max_hr=None):
+    if rest_hr is not None:
+        percent_heart_rate = _calc_percent_heart_rate(hr, rest_hr, max_hr)
+
     if percent_heart_rate >= 0.5:
         # calculating the color for heart rate - 0.75 is between 0.5 (start of UT3) and 1.0 (max HR)
         if percent_heart_rate - 0.75 > 0:
@@ -24,7 +31,10 @@ def hr_zone_coloring(percent_heart_rate):
     else:
         return 'rgb(0, 255, 0)' # green
 
-def calc_hr_zone(percent_heart_rate):
+def calc_hr_zone(percent_heart_rate=None, hr=None, rest_hr=None, max_hr=None):
+    if rest_hr is not None:
+        percent_heart_rate = _calc_percent_heart_rate(hr, rest_hr, max_hr)
+
     hr_zones = {0.9: 'TRANS', 0.8: 'AT', 0.7: 'UT1', 0.6: 'UT2', 0.5: 'UT3'}
     heart_rate_zone = int(percent_heart_rate * 10) / 10 # fancy truncation math to see which zone you're in
 
