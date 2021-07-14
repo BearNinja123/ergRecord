@@ -1,6 +1,5 @@
 month,day,year,hour,minute,num_sum_points,zone,avg_split,avg_hr,split_file,hr_file
 07,12,2021,20,08,0,UT2,163,151,split_data/split_2021-08-13_20:08.npy,hr_data/hr_2021-08-13_20:08.npy
-07,14,2021,20,08,0,UT2,162,151,split_data/split_2021-08-13_20:08.npy,hr_data/hr_2021-08-13_20:08.npy
 07,15,2021,20,08,0,UT2,163,150,split_data/split_2021-08-13_20:08.npy,hr_data/hr_2021-08-13_20:08.npy
 07,16,2021,20,08,0,UT2,161,150,split_data/split_2021-08-13_20:08.npy,hr_data/hr_2021-08-13_20:08.npy
 07,17,2021,20,08,0,UT2,160,150,split_data/split_2021-08-13_20:08.npy,hr_data/hr_2021-08-13_20:08.npy
@@ -10,3 +9,4 @@ month,day,year,hour,minute,num_sum_points,zone,avg_split,avg_hr,split_file,hr_fi
 07,22,2021,21,16,0,UT2,169,149,split_data/split_2021-16-13_21:16.npy,hr_data/hr_2021-16-13_21:16.npy
 07,23,2021,21,16,0,UT2,167,151,split_data/split_2021-16-13_21:16.npy,hr_data/hr_2021-16-13_21:16.npy
 07,24,2021,21,16,0,UT2,168,152,split_data/split_2021-16-13_21:16.npy,hr_data/hr_2021-16-13_21:16.npy
+07,14,2021,09,18,0,UT2,155,153,split_data/split_2021-18-14_09:18.npy,hr_data/hr_2021-18-14_09:18.npy

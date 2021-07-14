@@ -1,0 +1,39 @@
+<!DOCTYPE HTML>
+<html>
+    <head>
+        {% extends "layout.html" %}
+        {% block head %}
+            {{ super() }}
+
+            <!-- boi this took forever to implement -->
+            <script src="//ajax.googleapis.com/ajax/libs/jquery/3.6.0/jquery.min.js"></script>
+            <script src="static/dynamicStats.js"></script>
+            <script type="text/javascript">
+                function update() {
+                    $SCRIPT_ROOT = {{ request.script_root|tojson|safe }};
+                    $.getJSON($SCRIPT_ROOT+"/_data", updateCurrentStats);
+                }
+
+                var dataFetcher = setInterval(update, 1000 * {{ reload_time }});
+            </script>
+        {% endblock %}
+    </head>
+
+    <body>
+        {% block content %}
+            <br>
+            <img src={{ url_for('plot') }} alt="bruh" id="live_data_plot" align="left">
+
+            <div class='column'>
+                <p>Current Split: <span id="split"></span> </p>
+                <p>Current Heart Rate: <span id="hr"></span> </p>
+                <p>Average Split: <span id="avg_split"></span> </p>
+                <p>Average Heart Rate: <span id="avg_hr"></span> </p>
+                <p>Current Heart Rate Zone:<br> <span id="current_hr_zone"></span> </p><br>
+
+                <button id="clear_button">Clear Workout</button>
+                <button id="save_button">Save Workout</button>
+            </div>
+        {% endblock %}
+    </body>
+</html>

@@ -5,7 +5,7 @@ from pyrow import pyrow
 import matplotlib.pyplot as plt
 import numpy as np
 
-import formatting
+import app.formatting as formatting
 import os
 
 class ErgMonitor:

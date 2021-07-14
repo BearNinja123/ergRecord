@@ -1,13 +1,16 @@
 from matplotlib.backends.backend_agg import FigureCanvasAgg as FigureCanvas
-from flask import Flask, Response, render_template, jsonify, request, flash
+from flask import Flask, Response, render_template, jsonify, request, flash, send_file
+from PIL import Image
+
+import numpy as np
+import app.historical_data_plot as hdp
+import app.erg_monitor as erg_monitor
+import app.formatting as formatting
+import io, time, json, os
+
 import logging
 log = logging.getLogger('werkzeug')
 log.setLevel(logging.ERROR)
-
-import numpy as np
-import historical_data_plot as hdp
-import erg_monitor, formatting
-import io, time, json, os
 
 debug = True
 app = Flask(__name__)
@@ -55,6 +58,22 @@ def gen_figure(lookback=lookback): # reload_time = number of seconds to wait bef
         sendImage = False
         yield (b'--frame\r\n'
                b'Content-Type: image/jpeg\r\n\r\n' + ret + b'\r\n\r\n') # you absolutely need all of this to work
+
+# takes an image from disk (mainly from the 'images' folder) and displays it on a separate page on the website
+@app.route('/images/<name>')
+@app.route('/images/<folder>/<name>') # hacky way of doing things but i can't think of a better way
+def get_img(name, path='images', folder=None):
+    file_extension = name[name.index('.') + 1:]
+
+    if folder is None:
+        img = open(os.path.join(path, name), 'rb').read()
+    else:
+        img = open(os.path.join(path, folder, name), 'rb').read()
+
+    return send_file(
+        io.BytesIO(img),
+        mimetype='image/{}'.format(file_extension),
+        as_attachment=True, download_name=name)
 
 @app.route('/_data')
 def send_data(lookback=lookback): # calculates data to be sent to the website
@@ -152,8 +171,8 @@ def view_hdata():
     if request.method == 'POST':
         zone = request.form['workout_type']
         return render_template('historical_data.html',
-                split_pic='static/{}_historical_split.jpg'.format(zone),
-                hr_pic='static/{}_historical_hr.jpg'.format(zone))
+            split_pic='/images/{}/{}_historical_split.jpg'.format(zone, zone),
+            hr_pic='/images/{}/{}_historical_hr.jpg'.format(zone, zone))
     return render_template('historical_data.html')
 
 @app.route('/plot')
@@ -172,9 +191,9 @@ def index():
                 zone = formatting.calc_hr_zone(hr=monitor.avg_hr, rest_hr=rest_hr, max_hr=max_hr)
                 df = hdp.gen_hist_df(zone=zone)
                 split_fig = hdp.plot_zone_data(zone, mode='Split', df=df, color='green')
-                split_fig.savefig('static/{}_historical_split.jpg'.format(zone))
+                split_fig.savefig('images/{}/{}_historical_split.jpg'.format(zone, zone))
                 hr_fig = hdp.plot_zone_data(zone, mode='HR', df=df, color='red')
-                hr_fig.savefig('static/{}_historical_hr.jpg'.format(zone))
+                hr_fig.savefig('images/{}/{}_historical_hr.jpg'.format(zone, zone))
             elif request.form['button_clicked'] == 'clear':
                 monitor.clear_data()
                 clearFig = True
@@ -185,22 +204,18 @@ if __name__ == '__main__':
     df = hdp.gen_hist_df() # create data with all historical data
     if df: # if there is historical data
         for zone in ['TRANS', 'AT', 'UT1', 'UT2', 'UT3']: # for each zone, try to get split and HR data, if you can't, get empty graphs and save them
-            '''if '{}_historical_split.jpg'.format(zone) not in os.listdir('static'):
-                split_fig = hdp.empty_graph('Historical {} Workout Data (Split)'.format(zone))
-                split_fig.savefig('static/{}_historical_split.jpg'.format(zone))
-                hr_fig = hdp.empty_graph('Historical {} Workout Data (Split)'.format(zone))
-                hr_fig.savefig('static/{}_historical_hr.jpg'.format(zone))'''
-
+            file_dir = 'images/' + zone
             try:
-                split_fig = hdp.plot_zone_data(zone, mode='Split', df=df.get_group(zone), color='green')
-                split_fig.savefig('static/{}_historical_split.jpg'.format(zone))
-                hr_fig = hdp.plot_zone_data(zone, mode='HR', df=df.get_group(zone), color='red')
-                hr_fig.savefig('static/{}_historical_hr.jpg'.format(zone))
-            except:
+                os.listdir(file_dir)
+            except FileNotFoundError:
+                os.mkdir(file_dir)
+
+            print(os.listdir(file_dir))
+            if '{}_historical_split.jpg'.format(zone) not in os.listdir(file_dir):
                 split_fig = hdp.empty_graph('Historical {} Workout Data (Split)'.format(zone))
-                split_fig.savefig('static/{}_historical_split.jpg'.format(zone))
-                hr_fig = hdp.empty_graph('Historical {} Workout Data (Split)'.format(zone))
-                hr_fig.savefig('static/{}_historical_hr.jpg'.format(zone))
+                split_fig.savefig('{}/{}_historical_split.jpg'.format(file_dir, zone))
+                hr_fig = hdp.empty_graph('Historical {} Workout Data (HR)'.format(zone))
+                hr_fig.savefig('{}/{}_historical_hr.jpg'.format(file_dir, zone))
 
     if debug:
         app.run(debug=True)

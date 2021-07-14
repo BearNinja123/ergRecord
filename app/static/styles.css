@@ -1,5 +1,5 @@
 body {
-    background-image: url("/static/fatergo.jpeg");
+    background-image: url("/images/fatergo.jpg");
     background-size: cover;
     color: white;
     font-size: 30px;
@@ -44,7 +44,7 @@ select {
 
 .column {
     float: left;
-    width: 30%;
+    width: 450px;
     padding: 10px;
     background-color: rgba(15,35,5,0.75);
 }
