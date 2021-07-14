@@ -6,14 +6,12 @@ import numpy as np
 import os, datetime
 
 # takes the .csv file for the workouts and cleans the data to produce a Dataframe (if specifying a specific HR zone) or a GroupBy object
-def gen_hist_df(path='workouts', infile='workouts.csv', zone=None): # e.g. zone = 'UT2'
+def gen_hist_df(path='workouts', csv_name='workouts.csv', zone=None): # e.g. zone = 'UT2'
     try:
-        df = pd.read_csv(os.path.join(path, infile))
+        df = pd.read_csv(os.path.join(path, csv_name))
     except FileNotFoundError:
-        return False
+        return None
 
-
-    df = df.drop(['num_sum_points', 'split_file', 'hr_file'], axis=1)
     df = df.groupby('zone')
 
     if zone is None:

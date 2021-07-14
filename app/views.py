@@ -30,7 +30,25 @@ split = hr = None
 lookback = 60
 monitor = erg_monitor.ErgMonitor(debug=debug, lookback=lookback)
 sendImage = clearFig = False
+current_workout_zone = past_workout_zone = None
+hsd = hhd = None # hsd/hhd = historical split/HR data
 reload_time = 1
+
+def load_empty_graphs(): # if there's no image for a workout category, make an empty graph for it
+    df = hdp.gen_hist_df() # create data with all historical data
+
+    for zone in ['TRANS', 'AT', 'UT1', 'UT2', 'UT3']: # for each zone, try to get split and HR data, if you can't, get empty graphs and save them
+        file_dir = 'images/' + zone
+        try:
+            os.listdir(file_dir)
+        except FileNotFoundError:
+            os.mkdir(file_dir)
+
+        if '{}_historical_split.jpg'.format(zone) not in os.listdir(file_dir):
+            split_fig = hdp.empty_graph('Historical {} Workout Data (Split)'.format(zone))
+            split_fig.savefig('{}/{}_historical_split.jpg'.format(file_dir, zone))
+            hr_fig = hdp.empty_graph('Historical {} Workout Data (HR)'.format(zone))
+            hr_fig.savefig('{}/{}_historical_hr.jpg'.format(file_dir, zone))
 
 def gen_figure(lookback=lookback): # reload_time = number of seconds to wait before yielding a value
     global split, hr, sendImage, clearFig
@@ -77,14 +95,16 @@ def get_img(name, path='images', folder=None):
 
 @app.route('/_data')
 def send_data(lookback=lookback): # calculates data to be sent to the website
-    global sendImage
+    global sendImage, hsd, hhd
     sendImage = True
 
     fields = {
             'split': 'N/A',
             'avg_split': 'N/A',
+            'past_split': 'N/A',
             'hr': 'N/A',
             'avg_hr': 'N/A',
+            'past_hr': 'N/A',
             'current_hr_zone': 'N/A',
             'hr_color': 'N/A', # high hr - red, low hr - green
         }
@@ -111,6 +131,18 @@ def send_data(lookback=lookback): # calculates data to be sent to the website
             fields['avg_hr'] = str(round(avg_hr))
         else:
             fields['avg_split'] = fields['avg_hr'] = 'N/A'
+
+        observed_workout_timestep = monitor.timestep // 300 + 1
+
+        if rest_hr is not None:
+            hhd_too_small = hhd is not None and observed_workout_timestep > hhd.shape[0]
+            workout_changed = past_workout_zone != current_workout_zone
+            if (hhd_too_small or workout_changed) and current_workout_zone is not None:
+                hsd, hhd = monitor.find_nearest_historical(current_workout_zone)
+
+            if hsd is not None:
+                fields['past_split'] = formatting.fmt_split(hsd[observed_workout_timestep - 1]) # observed_workout_timestep is 1-indexed so adjust to make it 0-indexed
+                fields['past_hr'] = round(hhd[observed_workout_timestep - 1])
         
     return jsonify(fields)
 
@@ -181,7 +213,7 @@ def plot():
 
 @app.route('/', methods=['GET', 'POST'])
 def index():
-    global clearFig
+    global clearFig, current_workout_zone, past_workout_zone
 
     if request.method == 'POST':
         if 'button_clicked' in request.form:
@@ -197,26 +229,15 @@ def index():
             elif request.form['button_clicked'] == 'clear':
                 monitor.clear_data()
                 clearFig = True
+        elif 'workout_type' in request.form:
+            past_workout_zone = current_workout_zone
+            current_workout_zone = request.form['workout_type']
 
     return render_template('index.html', reload_time=reload_time)
 
+load_empty_graphs()
+
 if __name__ == '__main__':
-    df = hdp.gen_hist_df() # create data with all historical data
-    if df: # if there is historical data
-        for zone in ['TRANS', 'AT', 'UT1', 'UT2', 'UT3']: # for each zone, try to get split and HR data, if you can't, get empty graphs and save them
-            file_dir = 'images/' + zone
-            try:
-                os.listdir(file_dir)
-            except FileNotFoundError:
-                os.mkdir(file_dir)
-
-            print(os.listdir(file_dir))
-            if '{}_historical_split.jpg'.format(zone) not in os.listdir(file_dir):
-                split_fig = hdp.empty_graph('Historical {} Workout Data (Split)'.format(zone))
-                split_fig.savefig('{}/{}_historical_split.jpg'.format(file_dir, zone))
-                hr_fig = hdp.empty_graph('Historical {} Workout Data (HR)'.format(zone))
-                hr_fig.savefig('{}/{}_historical_hr.jpg'.format(file_dir, zone))
-
     if debug:
         app.run(debug=True)
         #app.run(host='0.0.0.0')

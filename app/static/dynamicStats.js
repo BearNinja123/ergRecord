@@ -20,12 +20,24 @@ $(document).ready(function() {
 function updateCurrentStats(data) {
     $("#split").text(data['split']);
     $("#avg_split").text(data['avg_split']);
+    $("#past_split").text(data['past_split']);
     $("#hr").text(data['hr']);
     $("#avg_hr").text(data['avg_hr']);
+    $("#past_hr").text(data['past_hr']);
     $("#current_hr_zone").text(data['current_hr_zone']);
     
     if (data['current_hr_zone'].startsWith("Error"))
         $("#current_hr_zone").css({'color': 'red'});
     else
         $("#current_hr_zone").css({'color': data['hr_color']});
+}
+
+function keepSelectedOption(id, page) {
+    var selected = $("#" + id + " option:selected");
+    selected.val(selected.text());
+    $.post(page,
+    {
+        workout_type: selected.text()
+    },
+    function(data, status) { });
 }

@@ -5,6 +5,7 @@ from pyrow import pyrow
 import matplotlib.pyplot as plt
 import numpy as np
 
+import app.historical_data_plot as hdp
 import app.formatting as formatting
 import os
 
@@ -168,6 +169,35 @@ class ErgMonitor:
         except Exception as e:
             print('Exception on method dump_data:', e)
             os.chdir('..')
+
+    def find_nearest_historical(self, hr_zone=None, rest_hr=None, max_hr=None, path='workouts', csv_name='workouts.csv'):
+        # generate the dataframe to scan which workout is long enough to compare to the current workout
+        avg_hr = np.mean(self.hrs)
+
+        if hr_zone is None:
+            hr_zone = formatting.calc_hr_zone(hr=avg_hr, rest_hr=rest_hr, max_hr=max_hr)
+
+        try:
+            df = hdp.gen_hist_df(path=path, csv_name=csv_name, zone=hr_zone)
+            if df is None:
+                return None, None
+        except KeyError: # df had no entries of the type of workout requested
+            return None, None
+
+        # load the most recent workout which is comparable to the current workout
+        observed_workout_timestep = self.timestep // 300 + 1
+
+        valid_workouts = df[df['num_sum_points'] >= observed_workout_timestep]
+
+        if valid_workouts.shape[0] == 0: # no valid workouts
+            return None, None
+
+        workout = valid_workouts.iloc[-1]
+        split_file, hr_file = workout['split_file'], workout['hr_file']
+        split_data = np.load(os.path.join(path, split_file))
+        hr_data = np.load(os.path.join(path, hr_file))
+
+        return split_data, hr_data
 
 if __name__ == '__main__':
     while True:

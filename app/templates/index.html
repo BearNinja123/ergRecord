@@ -6,8 +6,6 @@
             {{ super() }}
 
             <!-- boi this took forever to implement -->
-            <script src="//ajax.googleapis.com/ajax/libs/jquery/3.6.0/jquery.min.js"></script>
-            <script src="static/dynamicStats.js"></script>
             <script type="text/javascript">
                 function update() {
                     $SCRIPT_ROOT = {{ request.script_root|tojson|safe }};
@@ -25,11 +23,22 @@
             <img src={{ url_for('plot') }} alt="bruh" id="live_data_plot" align="left">
 
             <div class='column'>
-                <p>Current Split: <span id="split"></span> </p>
-                <p>Current Heart Rate: <span id="hr"></span> </p>
-                <p>Average Split: <span id="avg_split"></span> </p>
-                <p>Average Heart Rate: <span id="avg_hr"></span> </p>
-                <p>Current Heart Rate Zone:<br> <span id="current_hr_zone"></span> </p><br>
+                <p>Current Split: <span id="split"></span></p>
+                <p>Current Heart Rate: <span id="hr"></span></p>
+                <p>Average Split: <span id="avg_split"></span></p>
+                <p>Average Heart Rate: <span id="avg_hr"></span></p>
+                <p>Past Workout Split: <span id="past_split"></span>@<span id="past_hr"></span></p>
+                <p>Current Heart Rate Zone:<br> <span id="current_hr_zone"></span></p><br>
+
+                <label for="workout_options">Select a workout type:</label>
+                <select name="intended_workout_type" id="intended_workout_type">
+                    <option value="UT1">UT1</option>
+                    <option value="UT2">UT2</option>
+                    <option value="UT3">UT3</option>
+                    <option value="AT">AT</option>
+                    <option value="TRANS">TRANS</option>
+                </select>
+                <button type="submit" onclick="keepSelectedOption('intended_workout_type', '/')">yah</button><br><br>
 
                 <button id="clear_button">Clear Workout</button>
                 <button id="save_button">Save Workout</button>
