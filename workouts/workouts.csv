@@ -1,0 +1,2 @@
+month,day,year,hour,minute,num_sum_points,zone,avg_split,avg_hr,split_file,hr_file
+07,15,2021,09,38,12,UT1,156,164,split_data/split_07-15-2021_09:38.npy,hr_data/hr_07-15-2021_09:38.npy

@@ -32,9 +32,9 @@ class ErgMonitor:
             self.erg = e # i'm only connected to one erg at a time so the first erg found will be the erg I want to examine
 
         try:
-            self.erg = PyErg(erg) # turn the USB device into a PyErg object
+            self.erg = PyErg(self.erg) # turn the USB device into a PyErg object
             print('Erg found')
-        except NameError:
+        except Exception as e:
             pass
 
         return self.erg
@@ -78,16 +78,19 @@ class ErgMonitor:
 
     # plots the data and displays it if the user specified show=True when initializing an ErgMonitor object
     def graph_data(self):
-        if len(self.x) <= self.lookback:
-            self.ax.cla()
-            for val in [0, 60, 120, 180, 240]:
+        if len(self.x) <= self.lookback: # replot data if the x/y data can't be reset and plotted
+            self.ax.cla() # clear plot
+            for val in [0, 60, 120, 180, 240]: # horizontal lines
                 self.ax.axhline(val, color='gray', alpha=0.25)
             self.ax.set_yticks(np.arange(0, 250, 10))
             self.hr_plot, = self.ax.plot(self.x, self.hrs, color='red', label='Heart rate')
             self.split_plot, = self.ax.plot(self.x, self.splits, color='green', label='Split')
-            self.ax.set_ylim([min(min(self.hrs), min(self.splits)) - 10, max(max(self.hrs), max(self.splits)) + 10])
+
+            if len(self.hrs) != 0: # set the min/max y value for the plot to zoom on the data better
+                self.ax.set_ylim([min(min(self.hrs), min(self.splits)) - 10, max(max(self.hrs), max(self.splits)) + 10])
+
             self.ax.legend()
-        else:
+        else: # resetting the data and plotting is faster than replotting the entire plot
             visible_hrs = self.hrs[-self.lookback:]
             visible_splits = self.splits[-self.lookback:]
             self.hr_plot.set_ydata(visible_hrs) # update data, we don't care about updating xdata because that will make the lines go out of bounds from the figure
@@ -108,10 +111,11 @@ class ErgMonitor:
         self.collect_data()
         self.update_data()
         self.graph_data()
-        return self.fig, self.split, self.hr
+        return self.fig
 
-    def dump_data(self, avg_every=300, rest_hr=None, max_hr=None, outdir='.', csv_name='workouts.csv'): # take averages every 300 datapoints, zone is a value like 'UT2'
-        num_sum_points = len(self.x) // avg_every
+    # take averages every avg_every datapoints, zone is a value like 'UT2'
+    def dump_data(self, avg_every=300, zone=None, rest_hr=None, max_hr=None, outdir='.', csv_name='workouts.csv'):
+        num_sum_points = len(self.x) // avg_every # the amount of points per workout that will be saved to disk
         n = num_sum_points * avg_every
         get_avgs = lambda arr: arr[:n].reshape(avg_every, num_sum_points).mean(axis=0) # reshape arr into 2D array, take mean of that array where each mean summarizes avg_every items
         hr_arr = np.array(self.hrs)
@@ -119,7 +123,6 @@ class ErgMonitor:
         
         avg_splits = get_avgs(split_arr)
         self.avg_split = round(split_arr.mean())
-        #avg_split = formatting.fmt_split(split_arr.mean())
 
         avg_hrs = get_avgs(hr_arr)
         self.avg_hr = round(hr_arr.mean())
@@ -132,15 +135,10 @@ class ErgMonitor:
         os.chdir(outdir)
         
         try:
-            if rest_hr is None:
-                zone = 'unknown'
-            else:
+            if zone is None:
                 hrr = max_hr - rest_hr
                 percent_heart_rate = (self.avg_hr - rest_hr) / hrr
                 zone = formatting.calc_hr_zone(percent_heart_rate)
-
-                np.save('rest_hr.npy', rest_hr)
-                np.save('max_hr.npy', max_hr)
 
             try:
                 os.mkdir('hr_data')
@@ -149,12 +147,15 @@ class ErgMonitor:
                 pass
 
             mth, d, y, h, m = formatting.whats_the_time()
-            time_extension = '{}-{}-{}_{}:{}'.format(y, m, d, h, m)
+            time_extension = '{}-{}-{}_{}:{}'.format(mth, d, y, h, m) # example: a workout on 12:00 AM, Jan 01 2000 = 01-01-2000_0:00
             split_filename = 'split_data/split_{}.npy'.format(time_extension)
             hr_filename = 'hr_data/hr_{}.npy'.format(time_extension)
+
+            # save split and HR data
             np.save(split_filename, avg_splits)
             np.save(hr_filename, avg_hrs)
 
+            # write workout summary in a csv file
             if csv_name not in os.listdir():
                 outfile = open(csv_name, 'a')
                 outfile.write('month,day,year,hour,minute,num_sum_points,zone,avg_split,avg_hr,split_file,hr_file\n')
@@ -170,13 +171,14 @@ class ErgMonitor:
             print('Exception on method dump_data:', e)
             os.chdir('..')
 
+    # generate the split/HR data of the workout which is long enough to compare to the current workout
     def find_nearest_historical(self, hr_zone=None, rest_hr=None, max_hr=None, path='workouts', csv_name='workouts.csv'):
-        # generate the dataframe to scan which workout is long enough to compare to the current workout
         avg_hr = np.mean(self.hrs)
 
-        if hr_zone is None:
+        if hr_zone is None: # avg_hr/rest_hr/max_hr is a backup way to generate the HR zone, the HR zone should be offered
             hr_zone = formatting.calc_hr_zone(hr=avg_hr, rest_hr=rest_hr, max_hr=max_hr)
 
+        # get the df of the requested HR zone, if it doesn't exist, return None
         try:
             df = hdp.gen_hist_df(path=path, csv_name=csv_name, zone=hr_zone)
             if df is None:
@@ -192,14 +194,9 @@ class ErgMonitor:
         if valid_workouts.shape[0] == 0: # no valid workouts
             return None, None
 
-        workout = valid_workouts.iloc[-1]
+        workout = valid_workouts.iloc[-1] # iloc[-1] = most recent workout logged
         split_file, hr_file = workout['split_file'], workout['hr_file']
         split_data = np.load(os.path.join(path, split_file))
         hr_data = np.load(os.path.join(path, hr_file))
 
         return split_data, hr_data
-
-if __name__ == '__main__':
-    while True:
-        monitor = ErgMonitor()
-        monitor.update_data(show=True)

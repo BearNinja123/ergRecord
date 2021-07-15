@@ -32,12 +32,12 @@ monitor = erg_monitor.ErgMonitor(debug=debug, lookback=lookback)
 sendImage = clearFig = False
 current_workout_zone = past_workout_zone = None
 hsd = hhd = None # hsd/hhd = historical split/HR data
-reload_time = 1
+reload_time = 1 # amount of time in seconds to update live data
 
 def load_empty_graphs(): # if there's no image for a workout category, make an empty graph for it
     df = hdp.gen_hist_df() # create data with all historical data
 
-    for zone in ['TRANS', 'AT', 'UT1', 'UT2', 'UT3']: # for each zone, try to get split and HR data, if you can't, get empty graphs and save them
+    for zone in ['2K', 'TRANS', 'AT', 'UT1', 'UT2', 'UT3']: # for each zone, try to get split and HR data, if you can't, get empty graphs and save them
         file_dir = 'images/' + zone
         try:
             os.listdir(file_dir)
@@ -50,24 +50,22 @@ def load_empty_graphs(): # if there's no image for a workout category, make an e
             hr_fig = hdp.empty_graph('Historical {} Workout Data (HR)'.format(zone))
             hr_fig.savefig('{}/{}_historical_hr.jpg'.format(file_dir, zone))
 
-def gen_figure(lookback=lookback): # reload_time = number of seconds to wait before yielding a value
-    global split, hr, sendImage, clearFig
+# get a figure from the monitor and return it as a generator to display on the website
+def gen_figure():
+    global sendImage, clearFig
 
     while True:
-        if split is None:
-            wait = False
-        else:
-            wait = True
-
-        fig, split, hr = monitor.cug()
+        fig = monitor.cug() # get the fig
         output = io.BytesIO() # create a place to dump the contents of the figure into
         FigureCanvas(fig).print_jpeg(output) # turn the figure into a png file but just in memory
         ret = output.getvalue()
 
+        # sendImage is true when jQuery requests data so the image and the split/HR data is sent (and thus displayed) on the web page at the same time
         while not sendImage:
             time.sleep(0.01)
-            if clearFig:
-                fig, split, hr = monitor.cug()
+            if clearFig: # if the "clear workout" button is pressed, clearFig is True
+                monitor.clear_data()
+                fig = monitor.cug() # plot an empty graph
                 output = io.BytesIO() # create a place to dump the contents of the figure into
                 FigureCanvas(fig).print_jpeg(output) # turn the figure into a png file but just in memory
                 ret = output.getvalue()
@@ -93,59 +91,66 @@ def get_img(name, path='images', folder=None):
         mimetype='image/{}'.format(file_extension),
         as_attachment=True, download_name=name)
 
+# calculates data to be sent to the website
 @app.route('/_data')
-def send_data(lookback=lookback): # calculates data to be sent to the website
-    global sendImage, hsd, hhd
+def send_data(lookback=lookback):
+    global sendImage, hsd, hhd, past_workout_zone
     sendImage = True
 
+    # data that will be sent
     fields = {
-            'split': 'N/A',
-            'avg_split': 'N/A',
-            'past_split': 'N/A',
-            'hr': 'N/A',
-            'avg_hr': 'N/A',
-            'past_hr': 'N/A',
-            'current_hr_zone': 'N/A',
-            'hr_color': 'N/A', # high hr - red, low hr - green
-        }
+        'split': 'N/A',
+        'avg_split': 'N/A',
+        'past_split': 'N/A',
+        'hr': 'N/A',
+        'avg_hr': 'N/A',
+        'past_hr': 'N/A',
+        'current_hr_zone': 'N/A',
+        'hr_color': 'N/A', # high hr - red, low hr - green
+    }
 
-    if hr is not None:
-        if rest_hr is None or not type(rest_hr) is int:
-            fields['current_hr_zone'] = 'Error: Please fill out the form in the "Form" tab to see what zone you are currently in.'
-        else:
-            percent_heart_rate = (hr - rest_hr) / hrr
-            fields['current_hr_zone'] = formatting.calc_hr_zone(percent_heart_rate)
-            fields['hr_color'] = formatting.hr_zone_coloring(percent_heart_rate)
+    if monitor.hr is None: # if monitor.hr hasn't even be set, there's going to be no other data fields set
+        return jsonify(fields)
 
-        fields['split'] = formatting.fmt_split(split)
-        fields['hr'] = str(round(hr))
+    if rest_hr is None or not type(rest_hr) is int:
+        fields['current_hr_zone'] = 'Error: Please fill out the form in the "Form" tab to see what zone you are currently in.'
+    else:
+        percent_heart_rate = (monitor.hr - rest_hr) / hrr
+        fields['current_hr_zone'] = formatting.calc_hr_zone(percent_heart_rate)
+        fields['hr_color'] = formatting.hr_zone_coloring(percent_heart_rate)
 
-        if split == 0:
-            fields['split'] = 'N/A'
-        if hr == 0:
-            fields['hr'] = 'N/A'
+    fields['split'] = formatting.fmt_split(monitor.split)
+    fields['hr'] = round(monitor.hr)
 
-        avg_split, avg_hr = monitor.get_averages(lookback)
-        if not np.isnan(avg_split):
-            fields['avg_split'] = formatting.fmt_split(avg_split)
-            fields['avg_hr'] = str(round(avg_hr))
-        else:
-            fields['avg_split'] = fields['avg_hr'] = 'N/A'
+    if monitor.split == 0: # at least for when the erg is sending data, monitor.split is 0 when the erg is paused (no rowing happening)
+        fields['split'] = 'N/A'
+    if monitor.hr == 0:
+        fields['hr'] = 'N/A'
 
-        observed_workout_timestep = monitor.timestep // 300 + 1
+    avg_split, avg_hr = monitor.get_averages(lookback)
+    if not np.isnan(avg_split): # avg_split (and avg_hr) will be nan if numpy was trying to take the mean of an empty list
+        fields['avg_split'] = formatting.fmt_split(avg_split)
+        fields['avg_hr'] = round(avg_hr)
+    else:
+        fields['avg_split'] = fields['avg_hr'] = 'N/A'
 
-        if rest_hr is not None:
-            hhd_too_small = hhd is not None and observed_workout_timestep > hhd.shape[0]
-            workout_changed = past_workout_zone != current_workout_zone
-            if (hhd_too_small or workout_changed) and current_workout_zone is not None:
-                hsd, hhd = monitor.find_nearest_historical(current_workout_zone)
+    observed_workout_timestep = monitor.timestep // 300 + 1
 
-            if hsd is not None:
-                fields['past_split'] = formatting.fmt_split(hsd[observed_workout_timestep - 1]) # observed_workout_timestep is 1-indexed so adjust to make it 0-indexed
-                fields['past_hr'] = round(hhd[observed_workout_timestep - 1])
+    # try to find a comparable split from a past workout
+    if rest_hr is not None: # if no resting and max HR --> no workout zones --> can't get a split from a past workout in that zone
+        hhd_too_small = hhd is not None and observed_workout_timestep > hhd.shape[0]
+        workout_changed = past_workout_zone != current_workout_zone
+        if (hhd_too_small or workout_changed) and current_workout_zone is not None:
+            hsd, hhd = monitor.find_nearest_historical(current_workout_zone)
+            past_workout_zone = current_workout_zone # if workout changed, acknowledge the new workout into the past workout, if it didn't change, this line doesn't do anything
+
+        if hsd is not None:
+            fields['past_split'] = formatting.fmt_split(hsd[observed_workout_timestep - 1]) # observed_workout_timestep is 1-indexed so adjust to make it 0-indexed
+            fields['past_hr'] = round(hhd[observed_workout_timestep - 1])
         
     return jsonify(fields)
 
+# get the data from the form when submitted and save it
 @app.route('/form', methods=['GET', 'POST'])
 def submit_form():
     global hrr, rest_hr, max_hr, age
@@ -198,6 +203,7 @@ def submit_form():
         calc_max_hr=max_hr, trans_zone=trans, at_zone=at,
         ut1_zone=ut1, ut2_zone=ut2, ut3_zone=ut3)
 
+# get the zone that the user selected, then display pictures of the historical workout data of that zone
 @app.route('/hist_data', methods=['GET', 'POST'])
 def view_hdata():
     if request.method == 'POST':
@@ -207,10 +213,12 @@ def view_hdata():
             hr_pic='/images/{}/{}_historical_hr.jpg'.format(zone, zone))
     return render_template('historical_data.html')
 
+# take a figure and send it to the web page
 @app.route('/plot')
 def plot():
     return Response(gen_figure(), mimetype='multipart/x-mixed-replace; boundary=frame') # you absolutely need all of this to work
 
+# process button/workout selection input in the live data (the default) page and display the page
 @app.route('/', methods=['GET', 'POST'])
 def index():
     global clearFig, current_workout_zone, past_workout_zone
@@ -218,16 +226,19 @@ def index():
     if request.method == 'POST':
         if 'button_clicked' in request.form:
             if request.form['button_clicked'] == 'save':
-                monitor.dump_data(rest_hr=rest_hr, max_hr=max_hr, outdir='workouts')
+                if current_workout_zone != '2K':
+                    avg_every = 300
+                else:
+                    avg_every = 1 # for 2ks, record and store all data
 
-                zone = formatting.calc_hr_zone(hr=monitor.avg_hr, rest_hr=rest_hr, max_hr=max_hr)
-                df = hdp.gen_hist_df(zone=zone)
-                split_fig = hdp.plot_zone_data(zone, mode='Split', df=df, color='green')
-                split_fig.savefig('images/{}/{}_historical_split.jpg'.format(zone, zone))
-                hr_fig = hdp.plot_zone_data(zone, mode='HR', df=df, color='red')
-                hr_fig.savefig('images/{}/{}_historical_hr.jpg'.format(zone, zone))
+                monitor.dump_data(zone=current_workout_zone, rest_hr=rest_hr, max_hr=max_hr, avg_every=avg_every, outdir='workouts')
+
+                df = hdp.gen_hist_df(zone=current_workout_zone)
+                split_fig = hdp.plot_zone_data(current_workout_zone, mode='Split', df=df, color='green')
+                split_fig.savefig('images/{}/{}_historical_split.jpg'.format(current_workout_zone, current_workout_zone))
+                hr_fig = hdp.plot_zone_data(current_workout_zone, mode='HR', df=df, color='red')
+                hr_fig.savefig('images/{}/{}_historical_hr.jpg'.format(current_workout_zone, current_workout_zone))
             elif request.form['button_clicked'] == 'clear':
-                monitor.clear_data()
                 clearFig = True
         elif 'workout_type' in request.form:
             past_workout_zone = current_workout_zone
@@ -235,6 +246,7 @@ def index():
 
     return render_template('index.html', reload_time=reload_time)
 
+# if needed, make empty graphs so the section of historical data for each zone shows a figure
 load_empty_graphs()
 
 if __name__ == '__main__':

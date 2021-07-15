@@ -10,7 +10,7 @@ def gen_hist_df(path='workouts', csv_name='workouts.csv', zone=None): # e.g. zon
     try:
         df = pd.read_csv(os.path.join(path, csv_name))
     except FileNotFoundError:
-        return None
+        return False
 
     df = df.groupby('zone')
 
