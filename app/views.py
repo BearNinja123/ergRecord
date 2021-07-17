@@ -12,7 +12,7 @@ import logging
 log = logging.getLogger('werkzeug')
 log.setLevel(logging.ERROR)
 
-debug = True
+debug = False
 app = Flask(__name__)
 app.secret_key = b'j;oafijopiewjf oijfpOI JOI jpIOPJF'
 
@@ -28,6 +28,7 @@ except FileNotFoundError:
 
 split = hr = None
 lookback = 60
+sum_points_every = 5
 monitor = erg_monitor.ErgMonitor(debug=debug, lookback=lookback)
 sendImage = clearFig = False
 current_workout_zone = past_workout_zone = None
@@ -134,7 +135,7 @@ def send_data(lookback=lookback):
     else:
         fields['avg_split'] = fields['avg_hr'] = 'N/A'
 
-    observed_workout_timestep = monitor.timestep // 300 + 1
+    observed_workout_timestep = monitor.timestep // sum_points_every + 1
 
     # try to find a comparable split from a past workout
     if rest_hr is not None: # if no resting and max HR --> no workout zones --> can't get a split from a past workout in that zone
@@ -227,7 +228,7 @@ def index():
         if 'button_clicked' in request.form:
             if request.form['button_clicked'] == 'save':
                 if current_workout_zone != '2K':
-                    avg_every = 300
+                    avg_every = sum_points_every
                 else:
                     avg_every = 1 # for 2ks, record and store all data
 

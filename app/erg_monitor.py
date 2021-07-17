@@ -114,10 +114,10 @@ class ErgMonitor:
         return self.fig
 
     # take averages every avg_every datapoints, zone is a value like 'UT2'
-    def dump_data(self, avg_every=300, zone=None, rest_hr=None, max_hr=None, outdir='.', csv_name='workouts.csv'):
+    def dump_data(self, avg_every=5, zone=None, rest_hr=None, max_hr=None, outdir='.', csv_name='workouts.csv'):
         num_sum_points = len(self.x) // avg_every # the amount of points per workout that will be saved to disk
         n = num_sum_points * avg_every
-        get_avgs = lambda arr: arr[:n].reshape(avg_every, num_sum_points).mean(axis=0) # reshape arr into 2D array, take mean of that array where each mean summarizes avg_every items
+        get_avgs = lambda arr: arr[:n].reshape(num_sum_points, avg_every).mean(axis=1) # reshape arr into 2D array, take mean of that array where each mean summarizes avg_every items
         hr_arr = np.array(self.hrs)
         split_arr = np.array(self.splits)
         
@@ -187,7 +187,7 @@ class ErgMonitor:
             return None, None
 
         # load the most recent workout which is comparable to the current workout
-        observed_workout_timestep = self.timestep // 300 + 1
+        observed_workout_timestep = self.timestep // 5 + 1
 
         valid_workouts = df[df['num_sum_points'] >= observed_workout_timestep]
 
