@@ -25,4 +25,4 @@ Run the program
 python3 run.py
 ```
 
-By default, the app is on debug mode, meaning split and HR data will be generated. To get real data from an erg, go into app/views.py and change debug = True -> debug = False.
+By default, the app is on debug mode, meaning split and HR data will be generated. To get real data from an erg, go into config.py and change debug = True -> debug = False.

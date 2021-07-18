@@ -5,8 +5,10 @@ from pyrow import pyrow
 import matplotlib.pyplot as plt
 import numpy as np
 
-import app.historical_data_plot as hdp
-import app.formatting as formatting
+#import app.historical_data_plot as hdp
+#import app.formatting as formatting
+from . import historical_data_plot as hdp
+from . import formatting
 import os
 
 class ErgMonitor:
@@ -16,7 +18,7 @@ class ErgMonitor:
     debug - if True, make random data, if False, use data collected by erg
     lookback - number of datapoints that should be shown in the plot produced
     '''
-    def __init__(self, show=False, debug=False, lookback=60):
+    def __init__(self, show=False, debug=False, lookback=60, avg_every=300):
         self.erg = self._find_erg()
         self._setup_fig()
         self.clear_data()
@@ -24,6 +26,7 @@ class ErgMonitor:
         self.show = show
         self.debug = debug
         self.lookback = lookback
+        self.avg_every = avg_every
 
     def _find_erg(self): # return a PyErg object if found an erg, else return None
         self.erg = None
@@ -113,8 +116,11 @@ class ErgMonitor:
         self.graph_data()
         return self.fig
 
-    # take averages every avg_every datapoints, zone is a value like 'UT2'
-    def dump_data(self, avg_every=5, zone=None, rest_hr=None, max_hr=None, outdir='.', csv_name='workouts.csv'):
+    # take averages every self.avg_every datapoints, zone is a value like 'UT2'
+    def dump_data(self, avg_every=None, zone=None, rest_hr=None, max_hr=None, outdir='.', csv_name='workouts.csv'):
+        if avg_every is None:
+            avg_every = self.avg_every
+
         num_sum_points = len(self.x) // avg_every # the amount of points per workout that will be saved to disk
         n = num_sum_points * avg_every
         get_avgs = lambda arr: arr[:n].reshape(num_sum_points, avg_every).mean(axis=1) # reshape arr into 2D array, take mean of that array where each mean summarizes avg_every items
@@ -187,7 +193,7 @@ class ErgMonitor:
             return None, None
 
         # load the most recent workout which is comparable to the current workout
-        observed_workout_timestep = self.timestep // 5 + 1
+        observed_workout_timestep = self.timestep // self.avg_every + 1
 
         valid_workouts = df[df['num_sum_points'] >= observed_workout_timestep]
 
