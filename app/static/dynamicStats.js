@@ -5,7 +5,13 @@ $(document).ready(function() {
         {
             button_clicked: "save"
         },
-        function(data, status) { });
+        function(data, status) { 
+            $.getJSON("/_data", function(data)
+            {
+                if (data["intended_hr_zone"] == "N/A")
+                    alert("Please enter intended workout HR zone in the 'Select a Workout Type' menu.");
+            });
+        });
     });
 
     $("#clear_button").click(function() {

@@ -1,1 +1,2 @@
-SUBSYSTEM=="usb", ATTR{idVendor}=="17a4", ATTR{idProduct}=="000a", MODE="666"
+SUBSYSTEM=="usb", ATTR{idVendor}=="17a4", ATTR{idProduct}=="000a", MODE="666" # PM5 monitor
+SUBSYSTEM=="usb", ATTR{idVendor}=="17a4", ATTR{idProduct}=="0001", MODE="666" # PM3 monitor

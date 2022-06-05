@@ -1,7 +1,7 @@
 from app.fields import Fields
 from app import app
 
-debug = True
+debug = False
 lookback = 60
 avg_every = 300
 reload_time = 1

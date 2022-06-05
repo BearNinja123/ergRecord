@@ -38,6 +38,7 @@ class ErgMonitor:
             self.erg = PyErg(self.erg) # turn the USB device into a PyErg object
             print('Erg found')
         except Exception as e:
+            print(f'Exception: {e}')
             pass
 
         return self.erg
@@ -107,7 +108,10 @@ class ErgMonitor:
 
     def get_averages(self, lookback=60):
         lookback = min(lookback, len(self.x))
-        return np.mean(self.splits[-lookback:]), np.mean(self.hrs[-lookback:])
+        if len(self.splits) != 0:
+            return np.mean(self.splits[-lookback:]), np.mean(self.hrs[-lookback:])
+        else:
+            return np.nan, np.nan
 
     # collect, update, graph data
     def cug(self):
@@ -128,7 +132,7 @@ class ErgMonitor:
         split_arr = np.array(self.splits)
         
         avg_splits = get_avgs(split_arr)
-        self.avg_split = round(split_arr.mean())
+        self.avg_split = round(split_arr.mean(), 1)
 
         avg_hrs = get_avgs(hr_arr)
         self.avg_hr = round(hr_arr.mean())
@@ -179,7 +183,10 @@ class ErgMonitor:
 
     # generate the split/HR data of the workout which is long enough to compare to the current workout
     def find_nearest_historical(self, hr_zone=None, rest_hr=None, max_hr=None, path='workouts', csv_name='workouts.csv'):
-        avg_hr = np.mean(self.hrs)
+        if len(self.hrs) != 0:
+            avg_hr = np.mean(self.hrs)
+        else:
+            return None, None
 
         if hr_zone is None: # avg_hr/rest_hr/max_hr is a backup way to generate the HR zone, the HR zone should be offered
             hr_zone = formatting.calc_hr_zone(hr=avg_hr, rest_hr=rest_hr, max_hr=max_hr)

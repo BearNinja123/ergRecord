@@ -14,7 +14,7 @@ def gen_hist_df(path='workouts', csv_name='workouts.csv', zone=None): # e.g. zon
 
     df = df.groupby('zone')
 
-    if zone is None:
+    if zone is None or zone not in df.groups:
         return df
     else:
         return df.get_group(zone)

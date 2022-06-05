@@ -1,5 +1,5 @@
 from matplotlib.backends.backend_agg import FigureCanvasAgg as FigureCanvas
-from flask import Flask, Response, render_template, jsonify, request, flash, send_file
+from flask import Flask, Response, render_template, jsonify, request, flash, send_file, redirect
 from PIL import Image
 
 import numpy as np
@@ -30,10 +30,10 @@ def load_empty_graphs(): # if there's no image for a workout category, make an e
             hr_fig = hdp.empty_graph('Historical {} Workout Data (HR)'.format(zone))
             hr_fig.savefig('{}/{}_historical_hr.jpg'.format(file_dir, zone))
 
-# get a figure from the monitor and return it as a generator to display on the website
+# record data from the monitor and get a figure to be returned as a generator to display on the website (live data graph)
 def gen_figure():
     while True:
-        fig = fds.monitor.cug() # get the fig
+        fig = fds.monitor.cug() # collect the data, update the monitor's recorded splits and HRs, and get the fig
         output = io.BytesIO() # create a place to dump the contents of the figure into
         FigureCanvas(fig).print_jpeg(output) # turn the figure into a png file but just in memory
         ret = output.getvalue()
@@ -83,6 +83,7 @@ def send_data():
         'avg_hr': 'N/A',
         'past_hr': 'N/A',
         'current_hr_zone': 'N/A',
+        'intended_hr_zone': 'N/A',
         'hr_color': 'N/A', # high hr - red, low hr - green
     }
 
@@ -110,6 +111,9 @@ def send_data():
         fields['avg_hr'] = round(avg_hr)
     else:
         fields['avg_split'] = fields['avg_hr'] = 'N/A'
+
+    if fds.current_workout_zone is not None:
+        fields['intended_hr_zone'] = fds.current_workout_zone
 
     observed_workout_timestep = fds.monitor.timestep // fds.avg_every + 1
 
@@ -201,13 +205,16 @@ def index():
                 else:
                     avg_every = 1 # for 2ks, record and store all data
 
-                fds.monitor.dump_data(zone=fds.current_workout_zone, rest_hr=fds.rest_hr, max_hr=fds.max_hr, avg_every=avg_every, outdir=fds.outdir)
+                if fds.current_workout_zone is not None:
+                    df = hdp.gen_hist_df(zone=fds.current_workout_zone)
+                    fds.monitor.dump_data(zone=fds.current_workout_zone, rest_hr=fds.rest_hr, max_hr=fds.max_hr, avg_every=avg_every, outdir=fds.outdir)
 
-                df = hdp.gen_hist_df(zone=fds.current_workout_zone)
-                split_fig = hdp.plot_zone_data(fds.current_workout_zone, mode='Split', df=df, color='green')
-                split_fig.savefig('images/{}/{}_historical_split.jpg'.format(fds.current_workout_zone, fds.current_workout_zone))
-                hr_fig = hdp.plot_zone_data(fds.current_workout_zone, mode='HR', df=df, color='red')
-                hr_fig.savefig('images/{}/{}_historical_hr.jpg'.format(fds.current_workout_zone, fds.current_workout_zone))
+                    df = hdp.gen_hist_df(zone=fds.current_workout_zone)
+                    split_fig = hdp.plot_zone_data(fds.current_workout_zone, mode='Split', df=df, color='green')
+                    split_fig.savefig('images/{}/{}_historical_split.jpg'.format(fds.current_workout_zone, fds.current_workout_zone))
+                    hr_fig = hdp.plot_zone_data(fds.current_workout_zone, mode='HR', df=df, color='red')
+                    hr_fig.savefig('images/{}/{}_historical_hr.jpg'.format(fds.current_workout_zone, fds.current_workout_zone))
+
             elif request.form['button_clicked'] == 'clear':
                 fds.clear_fig = True
         elif 'workout_type' in request.form:
