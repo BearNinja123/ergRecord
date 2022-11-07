@@ -200,8 +200,10 @@ def index():
     if request.method == 'POST':
         if 'button_clicked' in request.form:
             if request.form['button_clicked'] == 'save':
-                if fds.current_workout_zone != '2K':
+                if 'UT' in fds.current_workout_zone:
                     avg_every = fds.avg_every
+                elif fds.current_workout_zone in {'AT', 'TRANS'}:
+                    avg_every = fds.avg_every // 10
                 else:
                     avg_every = 1 # for 2ks, record and store all data
 

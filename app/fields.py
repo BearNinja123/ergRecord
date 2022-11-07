@@ -5,7 +5,7 @@ import numpy as np
 import os
 
 class Fields:
-    def __init__(self, debug=False, lookback=60, avg_every=300, reload_time=1):
+    def __init__(self, debug=False, lookback=60, avg_every=240, reload_time=0.25):
         self.outdir = 'workouts'
         self.rest_hr = max_hr = hrr = age = None
         try:

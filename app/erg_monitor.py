@@ -18,7 +18,7 @@ class ErgMonitor:
     debug - if True, make random data, if False, use data collected by erg
     lookback - number of datapoints that should be shown in the plot produced
     '''
-    def __init__(self, show=False, debug=False, lookback=60, avg_every=300):
+    def __init__(self, show=False, debug=False, lookback=60, avg_every=60):
         self.erg = self._find_erg()
         self._setup_fig()
         self.clear_data()

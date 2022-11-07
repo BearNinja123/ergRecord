@@ -1,0 +1,16 @@
+month,day,year,hour,minute,num_sum_points,zone,avg_split,avg_hr,split_file,hr_file
+07,18,2021,10,29,7,UT3,177,133,split_data/split_07-18-2021_10:29.npy,hr_data/hr_07-18-2021_10:29.npy
+07,19,2021,20,16,11,UT2,165,150,split_data/split_07-19-2021_20:16.npy,hr_data/hr_07-19-2021_20:16.npy
+07,20,2021,19,49,10,UT1,159,170,split_data/split_07-20-2021_19:49.npy,hr_data/hr_07-20-2021_19:49.npy
+07,22,2021,15,07,13,UT1,160,165,split_data/split_07-22-2021_15:07.npy,hr_data/hr_07-22-2021_15:07.npy
+07,25,2021,10,31,3,UT3,173,133,split_data/split_07-25-2021_10:31.npy,hr_data/hr_07-25-2021_10:31.npy
+07,27,2021,18,40,12,UT1,159,176,split_data/split_07-27-2021_18:40.npy,hr_data/hr_07-27-2021_18:40.npy
+07,28,2021,15,20,0,UT2,167,136,split_data/split_07-28-2021_15:20.npy,hr_data/hr_07-28-2021_15:20.npy
+07,30,2021,16,04,1,TRANS,126,178,split_data/split_07-30-2021_16:04.npy,hr_data/hr_07-30-2021_16:04.npy
+08,03,2021,11,16,11,UT1,165,164,split_data/split_08-03-2021_11:16.npy,hr_data/hr_08-03-2021_11:16.npy
+08,04,2021,15,30,12,UT2,171,152,split_data/split_08-04-2021_15:30.npy,hr_data/hr_08-04-2021_15:30.npy
+08,05,2021,18,50,14,UT2,172,154,split_data/split_08-05-2021_18:50.npy,hr_data/hr_08-05-2021_18:50.npy
+08,06,2021,10,07,12,UT1,159,167,split_data/split_08-06-2021_10:07.npy,hr_data/hr_08-06-2021_10:07.npy
+08,09,2021,11,07,10,UT2,168,161,split_data/split_08-09-2021_11:07.npy,hr_data/hr_08-09-2021_11:07.npy
+08,09,2021,13,54,10,UT2,165,160,split_data/split_08-09-2021_13:54.npy,hr_data/hr_08-09-2021_13:54.npy
+08,12,2021,15,46,0,UT1,163,169,split_data/split_08-12-2021_15:46.npy,hr_data/hr_08-12-2021_15:46.npy
